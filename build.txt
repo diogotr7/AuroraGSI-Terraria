@@ -1,0 +1,3 @@
+displayName = Aurora GSI
+author = DrMeteor
+version = 0.1

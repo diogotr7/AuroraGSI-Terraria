@@ -1,0 +1,1 @@
+Aurora GSI is a helper mod for Aurora (http://www.project-aurora.com/) that sends player information for it to be displayed on RGB keyboards as interactive effects.
