@@ -2,52 +2,64 @@ using Newtonsoft.Json;
 using System;
 using System.Net.Http;
 using System.Text;
+using System.Timers;
 using System.Threading.Tasks;
 using Terraria;
 using Terraria.ModLoader;
 
 namespace AuroraGSI
 {
-	public class AuroraGSI : Mod
-	{
+    public class AuroraGSI : Mod
+    {
+        private const string URI = "http://localhost:9088";
         private readonly GSINode node = new GSINode();
         private HttpClient http;
-        private bool ok;
+        private Timer timer;
+        private string last;
 
         public override void Load()
         {
+            last = "";
             http = new HttpClient();
-            ok = true;
-            Task.Run(() => Loop());
+            http.Timeout = TimeSpan.FromMilliseconds(100);
+            timer = new Timer(100);
+            timer.Enabled = true;
+            timer.Elapsed += (a, b) => SendGameState();
+            timer.Start();
             base.Load();
-        }
-
-        private void Loop()
-        {
-            while (ok)
-            {
-                SendGameState();
-                System.Threading.Thread.Sleep(100);
-            }
         }
 
         public override void Unload()
         {
-            ok = false;
-            http.Dispose();
+            timer?.Dispose();
+            http?.Dispose();
             base.Unload();
         }
 
-        public void SendGameState()
+        public async void SendGameState()
         {
-            try
+            string data = JsonConvert.SerializeObject(node.Update());
+            if (data != last)
             {
-                http.PostAsync("http://localhost:9088",
-                        new StringContent(JsonConvert.SerializeObject(node.Update()),
-                                            Encoding.UTF8, "application/json"));
+                last = data;
+                try
+                {
+                    var response = await http.PostAsync(URI, new StringContent(data, Encoding.UTF8, "application/json"));
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Logger.Info("Request Failed, stopping further requests. Reload the mod to try again");
+                        timer.Enabled = false;
+                        //if one of these fails, restarting the mod is required.
+                        //this is done for users with the mod installed and aurora closed
+                    }
+                    response.Dispose();
+                }
+                catch
+                {
+                    Logger.Info("Request Failed, stopping further requests. Reload the mod to try again");
+                    timer.Enabled = false;
+                }
             }
-            catch
-            { }
         }
     }
 }
