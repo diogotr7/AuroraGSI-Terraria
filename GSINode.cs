@@ -18,8 +18,8 @@ namespace AuroraGSI
 
         public class ProviderNode
         {
-            public string name = "terraria";
-            public int appid = 105600;
+            public string name = "tmodloader";
+            public int appid = 1281930;
         }
 
         public class PlayerNode
